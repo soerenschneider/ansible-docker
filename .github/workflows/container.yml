@@ -1,0 +1,67 @@
+---
+name: Build and Push Docker Image
+
+on:
+  push:
+    paths:
+      - Dockerfile
+      - requirements.txt
+    branches:
+      - main
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.1
+
+      - name: Extract version from Dockerfile
+        id: extract_version
+        run: |
+          VERSION=$(grep ^ansible-core requirements.txt | awk -F'==' '{print $2}')
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Upsert git tag
+        run: |
+          git tag v${{ env.VERSION }}
+          git push origin v${{ env.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t your-image-name:${{ env.VERSION }} .
+
+      - name: Log in to the container registry
+        uses: docker/login-action@v2.2.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for container
+        id: meta
+        uses: docker/metadata-action@v4.6.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=ref,event=branch
+
+      - name: Build and push container image
+        uses: docker/build-push-action@v4.2.1
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
