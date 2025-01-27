@@ -1,4 +1,4 @@
-FROM ghcr.io/getsops/sops:v3.9.3-alpine AS sops
+FROM ghcr.io/getsops/sops:v3.9.4-alpine AS sops
 
 FROM python:3.13.1-alpine
 ARG UID=12563
