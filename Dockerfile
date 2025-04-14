@@ -1,6 +1,6 @@
 FROM ghcr.io/getsops/sops:v3.9.3-alpine AS sops
 
-FROM python:3.13.1-alpine
+FROM python:3.13.3-alpine
 ARG UID=12563
 RUN adduser \
     --disabled-password \
